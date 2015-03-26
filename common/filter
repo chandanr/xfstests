@@ -229,6 +229,30 @@ _filter_xfs_io_unique()
     common_line_filter | _filter_xfs_io
 }
 
+_filter_xfs_io_blocks_modified()
+{
+	BLOCK_SIZE=$(get_block_size $SCRATCH_MNT)
+
+	$AWK_PROG -v block_size=$BLOCK_SIZE '
+		/wrote/ {
+			split($2, bytes, "/")
+
+			bytes_written = strtonum(bytes[1])
+
+			offset = strtonum($NF)
+
+			block_start = offset / block_size
+			block_start = int(block_start)
+			block_end = (offset + bytes_written - 1) / block_size
+			block_end = int(block_end)
+
+			printf("Blocks modified: [%d - %d]\n", block_start, block_end)
+
+			next
+		}
+	'
+}
+
 _filter_test_dir()
 {
 	sed -e "s,$TEST_DEV,TEST_DEV,g" -e "s,$TEST_DIR,TEST_DIR,g"
@@ -321,6 +345,19 @@ _filter_fstrim()
 _filter_ro_mount() {
 	sed -e "s/mount: block device/mount:/g" \
 	    -e "s/mount: cannot mount block device/mount: cannot mount/g"
+}
+
+_filter_od()
+{
+	BLOCK_SIZE=$(get_block_size $SCRATCH_MNT)
+	$AWK_PROG -v block_size=$BLOCK_SIZE '
+		/^[0-9]+/ {
+			offset = strtonum("0"$1);
+			$1 = sprintf("%o", offset / block_size);
+			print $0;
+		}
+		/\*/
+	'
 }
 
 # make sure this script returns success
