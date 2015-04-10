@@ -1742,30 +1742,38 @@ _require_xfs_io_command()
 	fi
 	command=$1
 
-	testfile=$TEST_DIR/$$.xfs_io
+	testinfile=$TEST_DIR/$$.in.xfs_io
+	testoutfile=$TEST_DIR/$$.out.xfs_io
 	case $command in
 	"falloc" )
-		testio=`$XFS_IO_PROG -F -f -c "falloc 0 1m" $testfile 2>&1`
+		testio=`$XFS_IO_PROG -F -f -c "falloc 0 1m" $testoutfile 2>&1`
 		;;
 	"fpunch" | "fcollapse" | "zero" | "fzero" | "finsert" )
 		testio=`$XFS_IO_PROG -F -f -c "pwrite 0 20k" -c "fsync" \
-			-c "$command 4k 8k" $testfile 2>&1`
+			-c "$command 4k 8k" $testoutfile 2>&1`
 		;;
 	"fiemap")
 		testio=`$XFS_IO_PROG -F -f -c "pwrite 0 20k" -c "fsync" \
-			-c "fiemap -v" $testfile 2>&1`
+			-c "fiemap -v" $testoutfile 2>&1`
 		;;
 	"flink" )
-		testio=`$XFS_IO_PROG -T -F -c "flink $testfile" \
+		testio=`$XFS_IO_PROG -T -F -c "flink $testoutfile" \
 			$TEST_DIR 2>&1`
 		echo $testio | egrep -q "invalid option|Is a directory" && \
 			_notrun "xfs_io $command support is missing"
+		;;
+	"copy_file_range")
+		testio=`$XFS_IO_PROG -c "open -f $testinfile" \
+			-c "pwrite 0 64k" -c "fsync" \
+			-c "open -f $testoutfile" \
+			-c "copy_file_range -f 0 64k" 2>&1`
 		;;
 	*)
 		testio=`$XFS_IO_PROG -c "$command help" 2>&1`
 	esac
 
-	rm -f $testfile 2>&1 > /dev/null
+	rm -f $testinfile 2>&1 > /dev/null
+	rm -f $testoutfile 2>&1 > /dev/null
 	echo $testio | grep -q "not found" && \
 		_notrun "xfs_io $command support is missing"
 	echo $testio | grep -q "Operation not supported" && \

@@ -1,0 +1,39 @@
+QA output created by 326
+wrote 131072/131072 bytes at offset 0
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+936b86a622e45949b27b7f2f28e2a26b  TEST_DIR/src-326
+extend destination file
+copied 131072/131072 bytes
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+936b86a622e45949b27b7f2f28e2a26b  TEST_DIR/dst-326
+copy into previously written region
+wrote 131072/131072 bytes at offset 0
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+copied 131072/131072 bytes
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+936b86a622e45949b27b7f2f28e2a26b  TEST_DIR/dst-326
+copy into preallocated region
+copied 131072/131072 bytes
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+936b86a622e45949b27b7f2f28e2a26b  TEST_DIR/dst-326
+copy from likely sparse source
+wrote 32768/32768 bytes at offset 98304
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+wrote 32768/32768 bytes at offset 0
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+6df866b65f2e7392ec3b9c5c6c3c5a95  TEST_DIR/src-326
+copied 131072/131072 bytes
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+6df866b65f2e7392ec3b9c5c6c3c5a95  TEST_DIR/dst-326
+source at eof
+copied 0/131072 bytes
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+d41d8cd98f00b204e9800998ecf8427e  TEST_DIR/dst-326
+src or dst not regular files
+copy_file_range: Invalid cross-device link
+copy_file_range: Invalid cross-device link
+region overlap in one file
+copied 1/1 bytes
+XXX Bytes, X ops; XX:XX:XX.X (XXX YYY/sec and XXX ops/sec)
+unknown flags fail
+copy_file_range: Invalid argument

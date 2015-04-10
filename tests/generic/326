@@ -1,0 +1,116 @@
+#! /bin/bash
+# FS QA Test No. 326
+#
+# Try to test the basic shared behaviour of the file copy offloading
+# syscall. Avoid making assumptions about the capabilities of the
+# underlying storage.
+#
+#-----------------------------------------------------------------------
+# Copyright (c) 2015 Red Hat, Inc.  All Rights Reserved.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it would be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write the Free Software Foundation,
+# Inc.,  51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+#-----------------------------------------------------------------------
+#
+
+seq=`basename $0`
+seqres=$RESULT_DIR/$seq
+echo "QA output created by $seq"
+
+here=`pwd`
+tmp=/tmp/$$
+status=1	# failure is the default!
+trap "_cleanup; exit \$status" 0 1 2 3 15
+
+_cleanup()
+{
+	cd /
+	rm -f $tmp.*
+}
+
+# get standard environment, filters and checks
+. ./common/rc
+. ./common/filter
+
+# real QA test starts here
+
+_supported_fs generic
+_supported_os Linux
+_require_test
+_require_xfs_io_command copy_file_range
+
+src="$TEST_DIR/src-$seq"
+dst="$TEST_DIR/dst-$seq"
+rm -f $src $dst
+
+$XFS_IO_PROG -f -c "pwrite -S 0x12 0 128k" -c fsync "$src" | _filter_xfs_io
+md5sum "$src" | _filter_test_dir
+
+echo "extend destination file"
+$XFS_IO_PROG -f -c "copy_file_range -i $src -s 0 -t 0 128k" "$dst" \
+	| _filter_xfs_io
+md5sum "$dst" | _filter_test_dir
+
+rm -f "$dst"
+
+echo "copy into previously written region"
+$XFS_IO_PROG -f -c "pwrite -S 0xef 0 128k" -c fsync \
+	-c "copy_file_range -i $src -s 0 -t 0 128k" "$dst" \
+	| _filter_xfs_io
+md5sum "$dst" | _filter_test_dir
+
+rm -f "$dst"
+
+echo "copy into preallocated region"
+$XFS_IO_PROG -f -c "falloc 0 128k" \
+	     -c "copy_file_range -i $src -s 0 -t 0 128k" "$dst" \
+	     | _filter_xfs_io
+md5sum "$dst" | _filter_test_dir
+
+rm -f "$src"
+rm -f "$dst"
+
+echo "copy from likely sparse source"
+$XFS_IO_PROG -f -c "pwrite -S 0x56 96k 32k" \
+	     -c "pwrite -S 0x34 0 32k" \
+	     -c fsync "$src" | _filter_xfs_io
+md5sum "$src" | _filter_test_dir
+$XFS_IO_PROG -f -c "copy_file_range -i $src -s 0 -t 0 128k" "$dst" \
+	| _filter_xfs_io
+md5sum "$dst" | _filter_test_dir
+
+rm -f "$dst"
+
+echo "source at eof"
+$XFS_IO_PROG -f -c "copy_file_range -i $src -s 128k -t 0 128k" 	"$dst" \
+	| _filter_xfs_io
+md5sum "$dst" | _filter_test_dir
+
+rm -f "$dst"
+
+echo "src or dst not regular files"
+$XFS_IO_PROG -f -c "copy_file_range -i /dev/null 1" "$dst" | _filter_xfs_io
+$XFS_IO_PROG -c "copy_file_range -i $src 1" "/dev/null" | _filter_xfs_io
+
+echo "region overlap in one file"
+$XFS_IO_PROG -c "copy_file_range -i $src 1" "$src" | _filter_xfs_io
+
+rm -f "$dst"
+
+echo "unknown flags fail"
+$XFS_IO_PROG -f -c \
+	"copy_file_range -i $src -s 0 -t 0 4096 -F 0x40000000" "$dst" \
+	| _filter_xfs_io
+
+status=0
+exit $status

@@ -291,3 +291,4 @@
 323 auto aio stress
 324 auto fsr quick
 325 auto quick data log
+326 auto quick
