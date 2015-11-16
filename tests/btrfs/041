@@ -69,27 +69,36 @@ test_btrfs_restore()
 	_scratch_mkfs >/dev/null 2>&1
 	_scratch_mount $OPTIONS
 
+	BLOCK_SIZE=$(get_block_size $SCRATCH_MNT)
+	EXTENT_SIZE=$((24 * $BLOCK_SIZE + 1696))
+
 	# Create first file extent item, then fsync to make sure the next write
 	# won't end up in the same file extent item, so that we have 2 distinct
 	# file extent items.
-	$XFS_IO_PROG -f -c "pwrite -S 0xff -b 100000 0 100000" -c "fsync" \
-		$SCRATCH_MNT/foo | _filter_xfs_io
+	$XFS_IO_PROG -f -c "pwrite -S 0xff -b $EXTENT_SIZE 0 $EXTENT_SIZE" \
+		-c "fsync" $SCRATCH_MNT/foo | _filter_xfs_io_blocks_modified
 
 	# This creates a second file extent item.
-	$XFS_IO_PROG -c "pwrite -S 0xaa -b 100000 100000 100000" -c "fsync" \
-		$SCRATCH_MNT/foo | _filter_xfs_io
+	OFFSET=$EXTENT_SIZE
+	$XFS_IO_PROG -c "pwrite -S 0xaa -b $EXTENT_SIZE $OFFSET $EXTENT_SIZE" \
+		-c "fsync" $SCRATCH_MNT/foo | _filter_xfs_io_blocks_modified
 
 	# Now do a few writes that will cause the first extent item to be split,
 	# with some of the new smaller file extent items getting a data offset
 	# field different from 0.
-	$XFS_IO_PROG -c "pwrite -S 0x1e -b 2 10000 2" $SCRATCH_MNT/foo \
-		| _filter_xfs_io
-	$XFS_IO_PROG -c "pwrite -S 0xd0 -b 11 33000 11" $SCRATCH_MNT/foo \
-		| _filter_xfs_io
-	$XFS_IO_PROG -c "pwrite -S 0xbc -b 100 99000 100" $SCRATCH_MNT/foo \
-		| _filter_xfs_io
+	OFFSET=$((2 * $BLOCK_SIZE + 1808))
+	$XFS_IO_PROG -c "pwrite -S 0x1e -b 2 $OFFSET 2" $SCRATCH_MNT/foo \
+		| _filter_xfs_io_blocks_modified
 
-	md5sum $SCRATCH_MNT/foo | _filter_scratch
+	OFFSET=$((8 * $BLOCK_SIZE + 232))
+	$XFS_IO_PROG -c "pwrite -S 0xd0 -b 11 $OFFSET 11" $SCRATCH_MNT/foo \
+		| _filter_xfs_io_blocks_modified
+
+	OFFSET=$((24 * $BLOCK_SIZE + 696))
+	$XFS_IO_PROG -c "pwrite -S 0xbc -b 100 $OFFSET 100" $SCRATCH_MNT/foo \
+		| _filter_xfs_io_blocks_modified
+
+	orig_hash=$(md5sum $SCRATCH_MNT/foo | cut -f 1 -d ' ')
 
 	_scratch_unmount
 
@@ -100,7 +109,10 @@ test_btrfs_restore()
 	# resulting either in decompression failure or reading a wrong section
 	# of the extent.
 	_run_btrfs_util_prog restore $SCRATCH_DEV $restore_dir
-	md5sum $restore_dir/foo | cut -d ' ' -f 1
+	hash=$(md5sum $restore_dir/foo | cut -f 1 -d ' ')
+	if [ $orig_hash != $hash ]; then
+		echo "Btrfs restore failed: Mimatching hash values detected."
+	fi
 }
 
 echo "Testing restore of file compressed with lzo"
