@@ -3151,6 +3151,12 @@ get_block_size()
 	echo `stat -f -c %S $1`
 }
 
+get_page_size()
+{
+	echo $(getconf PAGE_SIZE)
+}
+
+
 init_rc
 
 ################################################################################
