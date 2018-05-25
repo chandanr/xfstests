@@ -59,47 +59,56 @@ mkdir $send_files_dir
 _scratch_mkfs >>$seqres.full 2>&1
 _scratch_mount
 
+block_size=`_get_block_size $TEST_DIR`
+
 # Create the first test file.
-$XFS_IO_PROG -f -c "pwrite -S 0xaa 0 4K" $SCRATCH_MNT/foo | _filter_xfs_io
+$XFS_IO_PROG -f -c "pwrite -S 0xaa 0 $block_size" $SCRATCH_MNT/foo \
+	| _filter_xfs_io_blocks_modified
 
 # Create a second test file with a 1Mb hole.
 $XFS_IO_PROG -f \
-     -c "pwrite -S 0xaa 0 4K" \
-     -c "pwrite -S 0xbb 1028K 4K" \
-     $SCRATCH_MNT/bar | _filter_xfs_io
+     -c "pwrite -S 0xaa 0 $block_size" \
+     -c "pwrite -S 0xbb $((257 * $block_size)) $block_size" \
+     $SCRATCH_MNT/bar | _filter_xfs_io_blocks_modified
 
 $BTRFS_UTIL_PROG subvolume snapshot -r $SCRATCH_MNT \
 	$SCRATCH_MNT/snap1 >/dev/null
 
 # Now add one new extent to our first test file, increasing its size and leaving
 # a 1Mb hole between the first extent and this new extent.
-$XFS_IO_PROG -c "pwrite -S 0xbb 1028K 4K" $SCRATCH_MNT/foo | _filter_xfs_io
+$XFS_IO_PROG -c "pwrite -S 0xbb $((257 * $block_size)) $block_size" \
+	     $SCRATCH_MNT/foo | _filter_xfs_io_blocks_modified
 
 # Now overwrite the last extent of our second test file.
-$XFS_IO_PROG -c "pwrite -S 0xcc 1028K 4K" $SCRATCH_MNT/bar | _filter_xfs_io
+$XFS_IO_PROG -c "pwrite -S 0xcc $((257 * $block_size)) $block_size" \
+	     $SCRATCH_MNT/bar | _filter_xfs_io_blocks_modified
 
 $BTRFS_UTIL_PROG subvolume snapshot -r $SCRATCH_MNT \
 		 $SCRATCH_MNT/snap2 >/dev/null
 
 echo
 echo "File digests in the original filesystem:"
-md5sum $SCRATCH_MNT/snap1/foo | _filter_scratch
-md5sum $SCRATCH_MNT/snap1/bar | _filter_scratch
-md5sum $SCRATCH_MNT/snap2/foo | _filter_scratch
-md5sum $SCRATCH_MNT/snap2/bar | _filter_scratch
+od -t x1 $SCRATCH_MNT/snap1/foo | _filter_od
+od -t x1 $SCRATCH_MNT/snap1/bar | _filter_od
+od -t x1 $SCRATCH_MNT/snap2/foo | _filter_od
+od -t x1 $SCRATCH_MNT/snap2/bar | _filter_od
 
 echo
 echo "File snap1/foo fiemap results in the original filesystem:"
-$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap1/foo | _filter_fiemap
+$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap1/foo \
+	| _filter_fiemap $block_size
 echo
 echo "File snap1/bar fiemap results in the original filesystem:"
-$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap1/bar | _filter_fiemap
+$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap1/bar \
+	| _filter_fiemap $block_size
 echo
 echo "File snap2/foo fiemap results in the original filesystem:"
-$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap2/foo | _filter_fiemap
+$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap2/foo \
+	| _filter_fiemap $block_size
 echo
 echo "File snap2/bar fiemap results in the original filesystem:"
-$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap2/bar | _filter_fiemap
+$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap2/bar \
+	| _filter_fiemap $block_size
 echo
 
 # Create the send streams to apply later on a new filesystem.
@@ -119,23 +128,27 @@ $BTRFS_UTIL_PROG receive -f $send_files_dir/2.snap $SCRATCH_MNT >/dev/null
 
 echo
 echo "File digests in the new filesystem:"
-md5sum $SCRATCH_MNT/snap1/foo | _filter_scratch
-md5sum $SCRATCH_MNT/snap1/bar | _filter_scratch
-md5sum $SCRATCH_MNT/snap2/foo | _filter_scratch
-md5sum $SCRATCH_MNT/snap2/bar | _filter_scratch
+od -t x1 $SCRATCH_MNT/snap1/foo | _filter_od
+od -t x1 $SCRATCH_MNT/snap1/bar | _filter_od
+od -t x1 $SCRATCH_MNT/snap2/foo | _filter_od
+od -t x1 $SCRATCH_MNT/snap2/bar | _filter_od
 
 echo
 echo "File snap1/foo fiemap results in the new filesystem:"
-$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap1/foo | _filter_fiemap
+$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap1/foo \
+	| _filter_fiemap $block_size
 echo
 echo "File snap1/bar fiemap results in the new filesystem:"
-$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap1/bar | _filter_fiemap
+$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap1/bar \
+	| _filter_fiemap $block_size
 echo
 echo "File snap2/foo fiemap results in the new filesystem:"
-$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap2/foo | _filter_fiemap
+$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap2/foo \
+	| _filter_fiemap $block_size
 echo
 echo "File snap2/bar fiemap results in the new filesystem:"
-$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap2/bar | _filter_fiemap
+$XFS_IO_PROG -r -c "fiemap -v" $SCRATCH_MNT/snap2/bar \
+	| _filter_fiemap $block_size
 
 status=0
 exit
