@@ -48,6 +48,9 @@ quotaon $SCRATCH_MNT 2> /dev/null
 
 testdir=$SCRATCH_MNT/test-$seq
 mkdir $testdir
+block_size=$(_get_block_size $SCRATCH_MNT)
+
+xfs_io -c "cowextsize $block_size" $testdir >> $seqres.full
 
 sz=1048576
 echo "Create the original files"
