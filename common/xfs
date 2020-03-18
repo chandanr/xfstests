@@ -389,10 +389,18 @@ _check_xfs_filesystem()
 		ok=0
 	fi
 
-	# xfs_check runs out of memory on large files, so even providing the test
-	# option (-t) to avoid indexing the free space trees doesn't make it pass on
-	# large filesystems. Avoid it.
-	if [ "$LARGE_SCRATCH_DEV" != yes ]; then
+	dblksz="$($XFS_INFO_PROG "${SCRATCH_DEV}" | grep naming.*bsize | sed -e 's/^.*bsize=//g' -e 's/\([0-9]*\).*$/\1/g')"
+	# xfs_check runs out of memory,
+	# 1. On large files. So even providing the test option (-t) to
+	# avoid indexing the free space trees doesn't make it pass on
+	# large filesystems.
+	# 2. When checking filesystems with large number of quota
+	# structures. This case happens consistently with 64k blocksize when
+	# creating large number of on-disk quota structures whose quota ids
+	# are spread across a large integer range.
+	#
+	# Hence avoid it in these two cases.
+	if [ $dblksz -le 4096 -a "$LARGE_SCRATCH_DEV" != yes ]; then
 		_xfs_check $extra_log_options $device 2>&1 > $tmp.fs_check
 	fi
 	if [ -s $tmp.fs_check ]; then
