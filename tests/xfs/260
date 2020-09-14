@@ -1,0 +1,70 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2020 Chandan Babu R.  All Rights Reserved.
+#
+# FS QA Test 260
+#
+# Test to check if growing a real-time device can end up logging an
+# xfs_buf with the "type" subfield of bip->bli_formats->blf_flags set
+# to XFS_BLFT_UNKNOWN_BUF.
+#
+seq=`basename $0`
+seqres=$RESULT_DIR/$seq
+echo "QA output created by $seq"
+
+here=`pwd`
+tmp=/tmp/$$
+status=1	# failure is the default!
+trap "_cleanup; exit \$status" 0 1 2 3 15
+
+_cleanup()
+{
+	cd /
+	rm -f $tmp.*
+}
+
+# get standard environment, filters and checks
+. ./common/rc
+. ./common/filter
+
+# remove previous $seqres.full before test
+rm -f $seqres.full
+
+# real QA test starts here
+
+# Modify as appropriate.
+_supported_fs generic
+_supported_os Linux
+_require_test
+_require_realtime
+_require_loop
+
+mntpnt=$TEST_DIR/mount-$seq
+
+xfs_io -f -c "falloc 0 500M" $TEST_DIR/fsdev.img
+xfs_io -f -c "falloc 0 150M" $TEST_DIR/rtdev.img
+
+fsdev=$(_create_loop_device $TEST_DIR/fsdev.img)
+rtdev=$(_create_loop_device $TEST_DIR/rtdev.img)
+
+mkdir $mntpnt
+
+MKFS_OPTIONS="-f -m reflink=0,rmapbt=0 -r rtdev=${rtdev},size=10M" \
+	    _mkfs_dev $fsdev >> $seqres.full
+_mount -o rtdev=${rtdev} $fsdev $mntpnt
+$XFS_GROWFS_PROG $mntpnt >> $seqres.full
+
+$UMOUNT_PROG $mntpnt
+
+_destroy_loop_device $fsdev
+_destroy_loop_device $rtdev
+
+rm -rf $TEST_DIR/fsdev.img
+rm -rf $TEST_DIR/rtdev.img
+rm -rf $mntpnt
+
+echo "Silence is golden"
+
+# success, all done
+status=0
+exit
