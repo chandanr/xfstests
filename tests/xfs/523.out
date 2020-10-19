@@ -1,0 +1,25 @@
+QA output created by 523
+* Fpunch regular file
+Format and mount fs
+Create $testfile
+Inject reduce_max_iextents error tag
+fpunch alternating blocks
+Verify $testfile's extent count
+* Finsert regular file
+Format and mount fs
+Create $testfile
+Inject reduce_max_iextents error tag
+Finsert at every other block offset
+Verify $testfile's extent count
+* Fcollapse regular file
+Format and mount fs
+Create $testfile
+Inject reduce_max_iextents error tag
+Fcollapse at every other block offset
+Verify $testfile's extent count
+* Fzero regular file
+Format and mount fs
+Create $testfile
+Inject reduce_max_iextents error tag
+Fzero at every other block offset
+Verify $testfile's extent count
