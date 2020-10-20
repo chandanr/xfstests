@@ -1,0 +1,8 @@
+QA output created by 527
+* Write to shared extent
+Format and mount fs
+Create a $srcfile having an extent of length 15 blocks
+Share the extent with $dstfile
+Inject reduce_max_iextents error tag
+Buffered write to every other block of $dstfile's shared extent
+Verify $dstfile's extent count
