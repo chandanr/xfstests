@@ -1,0 +1,13 @@
+QA output created by 527
+* Buffered write to unwritten extent
+Format and mount fs
+Fallocate 15 blocks
+Inject reduce_max_iextents error tag
+Buffered write to every other block of fallocated space
+Verify $testfile's extent count
+* Direct I/O write to unwritten extent
+Format and mount fs
+Fallocate 15 blocks
+Inject reduce_max_iextents error tag
+Direct I/O write to every other block of fallocated space
+Verify $testfile's extent count
