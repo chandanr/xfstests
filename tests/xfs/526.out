@@ -1,0 +1,47 @@
+QA output created by 526
+* Create directory entries
+Format and mount fs
+Consume free space
+Create fragmented filesystem
+Inject reduce_max_iextents error tag
+Inject bmap_alloc_minlen_extent error tag
+Create directory entries
+Verify directory's extent count
+* Rename: Populate destination directory
+Format and mount fs
+Consume free space
+Create fragmented filesystem
+Inject reduce_max_iextents error tag
+Inject bmap_alloc_minlen_extent error tag
+Populate $dstdir by mv-ing new directory entries
+Verify $dstdir's extent count
+* Rename: Populate source directory and mv one entry to destination directory
+Format and mount fs
+Consume free space
+Create fragmented filesystem
+Populate $srcdir with atleast 4 extents
+Inject reduce_max_iextents error tag
+Move an entry from $srcdir to trigger -EFBIG
+* Create multiple hard links to a single file
+Format and mount fs
+Consume free space
+Create fragmented filesystem
+Inject reduce_max_iextents error tag
+Inject bmap_alloc_minlen_extent error tag
+Create multiple hardlinks
+Verify directory's extent count
+* Create multiple symbolic links to a single file
+Format and mount fs
+Consume free space
+Create fragmented filesystem
+Inject reduce_max_iextents error tag
+Inject bmap_alloc_minlen_extent error tag
+Create multiple symbolic links
+Verify directory's extent count
+* Populate a directory and remove one entry
+Format and mount fs
+Consume free space
+Create fragmented filesystem
+Populate directory with atleast 4 extents
+Inject reduce_max_iextents error tag
+Remove an entry from directory to trigger -EFBIG

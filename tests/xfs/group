@@ -523,3 +523,4 @@
 523 auto quick realtime growfs
 524 auto quick punch zero insert collapse
 525 auto quick attr
+526 auto quick dir hardlink symlink
