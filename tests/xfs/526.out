@@ -1,0 +1,32 @@
+QA output created by 526
+Format and mount fs
+Consume free space
+Create fragmented filesystem
+Inject reduce_max_iextents error tag
+Inject bmap_alloc_minlen_extent error tag
+* Create directory entries
+Verify directory's extent count
+Successfully removed $dentry
+* Rename: Populate destination directory
+Populate $dstdir by moving new directory entries
+Verify $dstdir's extent count
+Successfully removed $dentry
+* Create multiple hard links to a single file
+Create multiple hardlinks
+Verify directory's extent count
+Successfully removed $dentry
+* Create multiple symbolic links to a single file
+Create multiple symbolic links
+Verify directory's extent count
+Successfully removed $dentry
+* Rename: Populate source directory and mv one entry to destination directory
+Disable reduce_max_iextents error tag
+Populate $srcdir with atleast 30 extents
+Inject reduce_max_iextents error tag
+Move an entry from $srcdir to trigger -EFBIG
+Disable reduce_max_iextents error tag
+* Populate a directory and remove one entry
+Populate directory with atleast 30 extents
+Inject reduce_max_iextents error tag
+Remove an entry from directory to trigger -EFBIG
+Disable reduce_max_iextents error tag
