@@ -525,3 +525,4 @@
 525 auto quick attr
 526 auto quick dir hardlink symlink
 527 auto quick
+528 auto quick reflink
