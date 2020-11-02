@@ -521,6 +521,7 @@
 521 auto quick realtime growfs
 522 auto quick quota
 523 auto quick realtime growfs
+524 auto quick punch zero insert collapse
 758 auto quick rw attr realtime
 759 auto quick rw realtime
 760 auto quick rw collapse punch insert zero prealloc
