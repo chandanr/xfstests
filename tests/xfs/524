@@ -1,0 +1,202 @@
+#! /bin/bash
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (c) 2020 Chandan Babu R.  All Rights Reserved.
+#
+# FS QA Test 524
+#
+# Verify that XFS does not cause inode fork's extent count to overflow when
+# punching out an extent.
+seq=`basename $0`
+seqres=$RESULT_DIR/$seq
+echo "QA output created by $seq"
+
+here=`pwd`
+tmp=/tmp/$$
+status=1	# failure is the default!
+trap "_cleanup; exit \$status" 0 1 2 3 15
+
+_cleanup()
+{
+	cd /
+	rm -f $tmp.*
+}
+
+# get standard environment, filters and checks
+. ./common/rc
+. ./common/filter
+. ./common/inject
+
+# remove previous $seqres.full before test
+rm -f $seqres.full
+
+# real QA test starts here
+
+_supported_fs xfs
+_require_scratch
+_require_xfs_debug
+_require_xfs_io_error_injection "reduce_max_iextents"
+
+punch_range()
+{
+	echo "* Fpunch regular file"
+
+	echo "Format and mount fs"
+	_scratch_mkfs >> $seqres.full
+	_scratch_mount >> $seqres.full
+
+	testfile=$SCRATCH_MNT/testfile
+	bsize=$(_get_block_size $SCRATCH_MNT)
+
+	nr_blks=30
+
+	echo "Create \$testfile"
+	xfs_io -f -c "pwrite -b $((nr_blks * bsize)) 0 $((nr_blks * bsize))" \
+	       -c sync $testfile  >> $seqres.full
+
+	echo "Inject reduce_max_iextents error tag"
+	xfs_io -x -c 'inject reduce_max_iextents' $SCRATCH_MNT
+
+	echo "fpunch alternating blocks"
+	$here/src/punch-alternating $testfile >> $seqres.full 2>&1
+
+	testino=$(stat -c "%i" $testfile)
+
+	_scratch_unmount >> $seqres.full
+
+	echo "Verify \$testfile's extent count"
+
+	nextents=$(_scratch_get_iext_count $testino data)
+	if (( $nextents > 10 )); then
+		echo "Extent count overflow check failed: nextents = $nextents"
+		exit 1
+	fi
+}
+
+finsert_range()
+{
+	echo "* Finsert regular file"
+
+	echo "Format and mount fs"
+	_scratch_mkfs >> $seqres.full
+	_scratch_mount >> $seqres.full
+
+	testfile=$SCRATCH_MNT/testfile
+	bsize=$(_get_block_size $SCRATCH_MNT)	
+
+	nr_blks=30
+
+	echo "Create \$testfile"
+	xfs_io -f -c "pwrite -b $((nr_blks * bsize)) 0 $((nr_blks * bsize))" \
+	       -c sync $testfile  >> $seqres.full
+
+	echo "Inject reduce_max_iextents error tag"
+	xfs_io -x -c 'inject reduce_max_iextents' $SCRATCH_MNT
+
+	echo "Finsert at every other block offset"
+	for i in $(seq 1 2 $((nr_blks - 1))); do
+		xfs_io -f -c "finsert $((i * bsize)) $bsize" $testfile \
+		       >> $seqres.full 2>&1
+		[[ $? != 0 ]] && break
+	done
+
+	testino=$(stat -c "%i" $testfile)
+
+	_scratch_unmount >> $seqres.full
+
+	echo "Verify \$testfile's extent count"
+
+	nextents=$(_scratch_get_iext_count $testino data)
+	if (( $nextents > 10 )); then
+		echo "Extent count overflow check failed: nextents = ${nextents}"
+		exit 1
+	fi
+}
+
+fcollapse_range()
+{
+	echo "* Fcollapse regular file"
+
+	echo "Format and mount fs"
+	_scratch_mkfs >> $seqres.full
+	_scratch_mount >> $seqres.full
+
+	testfile=$SCRATCH_MNT/testfile
+	bsize=$(_get_block_size $SCRATCH_MNT)	
+
+	nr_blks=30
+
+	echo "Create \$testfile"
+	xfs_io -f -c "pwrite -b $((nr_blks * bsize)) 0 $((nr_blks * bsize))" \
+	       -c sync $testfile  >> $seqres.full
+
+	echo "Inject reduce_max_iextents error tag"
+	xfs_io -x -c 'inject reduce_max_iextents' $SCRATCH_MNT
+
+	echo "Fcollapse at every other block offset"
+	for i in $(seq 1 $((nr_blks / 2 - 1))); do
+		xfs_io -f -c "fcollapse $((i * bsize)) $bsize" $testfile \
+		       >> $seqres.full 2>&1
+		[[ $? != 0 ]] && break
+	done
+
+	testino=$(stat -c "%i" $testfile)
+
+	_scratch_unmount >> $seqres.full
+
+	echo "Verify \$testfile's extent count"
+
+	nextents=$(_scratch_get_iext_count $testino data)
+	if (( $nextents > 10 )); then
+		echo "Extent count overflow check failed: nextents = ${nextents}"
+		exit 1
+	fi
+}
+
+fzero_range()
+{
+	echo "* Fzero regular file"
+
+	echo "Format and mount fs"
+	_scratch_mkfs >> $seqres.full
+	_scratch_mount >> $seqres.full
+
+	testfile=$SCRATCH_MNT/testfile
+	bsize=$(_get_block_size $SCRATCH_MNT)	
+
+	nr_blks=30
+
+	echo "Create \$testfile"
+	xfs_io -f -c "pwrite -b $((nr_blks * bsize)) 0 $((nr_blks * bsize))" \
+	       -c sync $testfile  >> $seqres.full
+
+	echo "Inject reduce_max_iextents error tag"
+	xfs_io -x -c 'inject reduce_max_iextents' $SCRATCH_MNT
+
+	echo "Fzero at every other block offset"
+	for i in $(seq 1 2 $((nr_blks - 1))); do
+		xfs_io -f -c "fzero $((i * bsize)) $bsize" $testfile \
+		       >> $seqres.full 2>&1
+		[[ $? != 0 ]] && break
+	done
+
+	testino=$(stat -c "%i" $testfile)
+
+	_scratch_unmount >> $seqres.full
+
+	echo "Verify \$testfile's extent count"
+
+	nextents=$(_scratch_get_iext_count $testino data)
+	if (( $nextents > 10 )); then
+		echo "Extent count overflow check failed: nextents = ${nextents}"
+		exit 1
+	fi
+}
+
+punch_range
+finsert_range
+fcollapse_range
+fzero_range
+
+# success, all done
+status=0
+exit
