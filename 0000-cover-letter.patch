@@ -1,0 +1,88 @@
+From aff3d33ebe06020f62cf29acef7e5525627c9e04 Mon Sep 17 00:00:00 2001
+From: Chandan Babu R <chandanrlinux@gmail.com>
+Date: Fri, 13 Nov 2020 16:41:49 +0530
+Subject: [PATCH 00/11] xfs: Tests to check for inode fork extent count overflow detection
+To: fstests@vger.kernel.org
+Cc: linux-xfs@vger.kernel.org,
+    darrick.wong@oracle.com
+
+The patchset at
+https://lore.kernel.org/linux-xfs/20201103150642.2032284-1-chandanrlinux@gmail.com/T/#m90a8754df516bbd0c36830904a2e31c37983792c  
+added support to XFS to detect inode extent count overflow when
+performing various filesystem operations. The patchset also added
+new error injection tags for,
+1. Reducing maximum extent count to 10.
+2. Allocating only single block sized extents.
+
+The corresponding code for xfsprogs can be obtained from
+https://lore.kernel.org/linux-xfs/20201104114900.172147-1-chandanrlinux@gmail.com/.
+
+The patches posted along with this cover letter add tests to verify if
+the in-kernel inode extent count overflow detection mechanism works
+correctly.
+
+These patches can also be obtained from
+https://github.com/chandanr/xfsprogs-dev.git at branch
+extent-overflow-tests.
+
+Chandan Babu R (11):
+  common/xfs: Add a helper to get an inode fork's extent count
+  xfs: Check for extent overflow when trivally adding a new extent
+  xfs: Check for extent overflow when trivally adding a new extent
+  xfs: Check for extent overflow when punching a hole
+  xfs: Check for extent overflow when adding/removing xattrs
+  xfs: Check for extent overflow when adding/removing dir entries
+  xfs: Check for extent overflow when writing to unwritten extent
+  xfs: Check for extent overflow when moving extent from cow to data
+    fork
+  xfs: Check for extent overflow when remapping an extent
+  xfs: Check for extent overflow when swapping extents
+  xfs: Stress test with with bmap_alloc_minlen_extent error tag enabled
+
+ common/xfs        |  22 +++
+ tests/xfs/522     | 214 +++++++++++++++++++++++++++
+ tests/xfs/522.out |  24 ++++
+ tests/xfs/523     | 176 +++++++++++++++++++++++
+ tests/xfs/523.out |  18 +++
+ tests/xfs/524     | 210 +++++++++++++++++++++++++++
+ tests/xfs/524.out |  25 ++++
+ tests/xfs/525     | 154 ++++++++++++++++++++
+ tests/xfs/525.out |  16 +++
+ tests/xfs/526     | 360 ++++++++++++++++++++++++++++++++++++++++++++++
+ tests/xfs/526.out |  47 ++++++
+ tests/xfs/527     | 125 ++++++++++++++++
+ tests/xfs/527.out |  13 ++
+ tests/xfs/528     |  87 +++++++++++
+ tests/xfs/528.out |   8 ++
+ tests/xfs/529     |  86 +++++++++++
+ tests/xfs/529.out |   8 ++
+ tests/xfs/530     | 115 +++++++++++++++
+ tests/xfs/530.out |  13 ++
+ tests/xfs/531     |  85 +++++++++++
+ tests/xfs/531.out |   6 +
+ tests/xfs/group   |  10 ++
+ 22 files changed, 1822 insertions(+)
+ create mode 100755 tests/xfs/522
+ create mode 100644 tests/xfs/522.out
+ create mode 100755 tests/xfs/523
+ create mode 100644 tests/xfs/523.out
+ create mode 100755 tests/xfs/524
+ create mode 100644 tests/xfs/524.out
+ create mode 100755 tests/xfs/525
+ create mode 100644 tests/xfs/525.out
+ create mode 100755 tests/xfs/526
+ create mode 100644 tests/xfs/526.out
+ create mode 100755 tests/xfs/527
+ create mode 100644 tests/xfs/527.out
+ create mode 100755 tests/xfs/528
+ create mode 100644 tests/xfs/528.out
+ create mode 100755 tests/xfs/529
+ create mode 100644 tests/xfs/529.out
+ create mode 100755 tests/xfs/530
+ create mode 100644 tests/xfs/530.out
+ create mode 100755 tests/xfs/531
+ create mode 100644 tests/xfs/531.out
+
+-- 
+2.28.0
+
