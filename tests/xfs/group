@@ -527,3 +527,4 @@
 527 auto quick quota
 528 auto quick quota
 529 auto quick realtime growfs
+530 auto quick punch zero insert collapse
