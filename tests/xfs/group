@@ -532,3 +532,4 @@
 532 auto quick dir hardlink symlink
 533 auto quick
 534 auto quick reflink
+535 auto quick reflink
